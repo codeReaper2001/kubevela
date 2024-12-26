@@ -138,6 +138,49 @@ func init() {
 			}),
 		},
 		ChildrenResourcesRule{
+			GroupResourceType: GroupResourceType{Group: "helm.cattle.io", Kind: "HelmChart"},
+			SubResources: buildSubResources([]*SubResourceSelector{
+				{
+					ResourceType: ResourceType{APIVersion: "apps/v1", Kind: "Deployment"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "apps/v1", Kind: "StatefulSet"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "v1", Kind: "ConfigMap"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "v1", Kind: "Secret"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "v1", Kind: "Service"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "v1", Kind: "PersistentVolumeClaim"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "networking.k8s.io/v1", Kind: "Ingress"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "gateway.networking.k8s.io/v1beta1", Kind: "HTTPRoute"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "gateway.networking.k8s.io/v1beta1", Kind: "Gateway"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "v1", Kind: "ServiceAccount"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"},
+				},
+				{
+					ResourceType: ResourceType{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "RoleBinding"},
+				},
+			}),
+			DefaultGenListOptionFunc:      helmChart2AnyListOption,
+			DisableFilterByOwnerReference: true,
+		},
+		ChildrenResourcesRule{
 			GroupResourceType: GroupResourceType{Group: "helm.toolkit.fluxcd.io", Kind: "HelmRelease"},
 			SubResources: buildSubResources([]*SubResourceSelector{
 				{
@@ -384,6 +427,17 @@ var cronJobLabelListOption = func(obj unstructured.Unstructured) (client.ListOpt
 		return client.ListOptions{}, err
 	}
 	return client.ListOptions{Namespace: obj.GetNamespace(), LabelSelector: cronJobSelector}, nil
+}
+
+var helmChart2AnyListOption = func(obj unstructured.Unstructured) (client.ListOptions, error) {
+	hrSelector, err := v1.LabelSelectorAsSelector(&v1.LabelSelector{MatchLabels: map[string]string{
+		"helm.cattle.io/chart-release-name":      obj.GetName(),
+		"helm.cattle.io/chart-release-namespace": obj.GetNamespace(),
+	}})
+	if err != nil {
+		return client.ListOptions{}, err
+	}
+	return client.ListOptions{LabelSelector: hrSelector}, nil
 }
 
 var helmRelease2AnyListOption = func(obj unstructured.Unstructured) (client.ListOptions, error) {
